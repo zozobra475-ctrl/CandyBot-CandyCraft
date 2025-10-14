@@ -1,4 +1,7 @@
 // CANDYBOT - Discord.js v14
+if (process.env.RUN_DEPLOY === "true") {
+  import("./deploy-commands.js");
+}
 import { Client, GatewayIntentBits, Partials, Collection, EmbedBuilder } from "discord.js";
 import { Player } from "discord-player";
 import express from "express";
@@ -191,3 +194,4 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 client.login(process.env.TOKEN);
+
