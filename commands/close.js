@@ -1,9 +1,9 @@
-// /commands/close.js (Versión ESM)
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import fs from 'fs';
-import path from 'path'; // Necesario para gestionar archivos
+// /commands/close.js (Versión ESM corregida)
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js'; // CAMBIO 1
+import fs from 'fs'; // CAMBIO 1
+import path from 'path';
 
-export default { // <-- CAMBIO CLAVE: export default
+export default { // CAMBIO 2
     data: new SlashCommandBuilder()
         .setName('close')
         .setDescription('Cierra el ticket actual y crea una transcripción.')
@@ -23,7 +23,7 @@ export default { // <-- CAMBIO CLAVE: export default
 
         await interaction.reply({ content: 'Iniciando proceso de transcripción y cierre...' });
 
-        // --- 1. TRANSCRIPCIÓN ---
+        // --- TRANSCRIPCIÓN ---
         const messages = await interaction.channel.messages.fetch({ limit: 100 }); 
 
         let transcriptContent = `--- TRANSCRIPCIÓN DE CANDYBOT TICKET ---\n`;
@@ -54,7 +54,7 @@ export default { // <-- CAMBIO CLAVE: export default
             console.error('ID de canal de logs no encontrado. Verifica la variable logChannelId.');
         }
         
-        // --- 2. ELIMINAR EL CANAL DE TICKET ---
+        // --- ELIMINAR EL CANAL DE TICKET ---
         await interaction.channel.send(`¡Ticket cerrado! Este canal será eliminado en 10 segundos.`);
         setTimeout(() => {
             interaction.channel.delete().catch(e => console.error('No se pudo eliminar el ticket:', e));
