@@ -1,9 +1,9 @@
 // /commands/close.js (Versión ESM)
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import fs from 'fs';
-import path from 'path'; // Agregamos path para mejor manejo de archivos
+import path from 'path'; // Necesario para gestionar archivos
 
-export default { // CAMBIO CLAVE: export default
+export default { // <-- CAMBIO CLAVE: export default
     data: new SlashCommandBuilder()
         .setName('close')
         .setDescription('Cierra el ticket actual y crea una transcripción.')
@@ -32,14 +32,12 @@ export default { // CAMBIO CLAVE: export default
         transcriptContent += `Razón: ${interaction.options.getString('razon')}\n`;
         transcriptContent += `Fecha: ${new Date().toLocaleString()}\n\n`;
 
-        // Procesamiento de mensajes
         messages.reverse().forEach(msg => {
             if (!msg.author.bot) { 
                 transcriptContent += `[${new Date(msg.createdTimestamp).toLocaleString()}] ${msg.author.tag}: ${msg.content}\n`;
             }
         });
 
-        // Asegúrate de que este ID está configurado
         const logChannelId = '1433466662178258944'; 
         const logChannel = interaction.guild.channels.cache.get(logChannelId);
 
