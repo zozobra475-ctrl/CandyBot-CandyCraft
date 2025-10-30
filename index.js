@@ -1,20 +1,21 @@
-// CANDYBOT - Discord.js v14 (Modular Refactor)
+// index.js - CANDYBOT - Discord.js v14 (Versión Modular Refactorizada)
+
 import {
     Client,
     GatewayIntentBits,
     Partials,
     Collection,
-    EmbedBuilder // Mantener EmbedBuilder por si quieres usarlo en comandos legacy
+    EmbedBuilder
 } from "discord.js";
 import { Player } from "discord-player";
 import express from "express";
-import fetch from "node-fetch"; // Necesario para el comando !players
+import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 dotenv.config();
 
-// === Mantener Railway activo ===
+// === Mantener Railway activo (Health Check) ===
 const app = express();
 app.get("/", (req, res) => res.send("CandyBot está activo 24/7"));
 app.listen(process.env.PORT || 3000, () => console.log("Servidor web activo."));
@@ -24,7 +25,7 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent, // CRÍTICO: para AntiSpam y comandos legacy !
+        GatewayIntentBits.MessageContent, 
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildVoiceStates,
     ],
@@ -32,19 +33,20 @@ const client = new Client({
 });
 
 client.commands = new Collection();
-client.cooldowns = new Collection(); // CRÍTICO: Para AntiSpam
+client.cooldowns = new Collection(); // Para AntiSpam
 const player = new Player(client);
 
 // ------------------------------------------
 // === 1. CARGA DE MÓDULOS (Comandos y Eventos) ===
 // ------------------------------------------
 
-// Carga de Comandos de Barra (/)
+// --- Carga de Comandos de Barra (/) ---
 const commandsPath = path.join(process.cwd(), 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
-    // Usamos require ya que estamos en un contexto de módulo híbrido (JS v14)
+    // Usamos require ya que estamos en un contexto de módulo híbrido
     const command = require(filePath); 
     if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
@@ -53,12 +55,15 @@ for (const file of commandFiles) {
     }
 }
 
-// Carga de Eventos (AntiSpam, Tickets, Ready)
+// --- Carga de Eventos (AntiSpam, Tickets, Ready) ---
 const eventsPath = path.join(process.cwd(), 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js') && file !== 'interactionCreate.js'); // Excluir interactionCreate por ahora
+const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+
 for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
     const event = require(filePath);
+    
+    // El evento 'interactionCreate' y 'messageCreate' deben cargarse como 'on'
     if (event.once) {
         client.once(event.name, (...args) => event.execute(...args, client));
     } else {
@@ -66,15 +71,12 @@ for (const file of eventFiles) {
     }
 }
 
-// Cargar interactionCreate.js por separado (para asegurarnos de que se carga correctamente)
-const interactionCreate = require('./events/interactionCreate.js');
-client.on(interactionCreate.name, (...args) => interactionCreate.execute(...args, client));
-
 
 // ------------------------------------------
-// === 2. LÓGICA LEGACY (Se pueden mantener estos comandos ! antiguos) ===
+// === 2. LÓGICA LEGACY (Comandos ! y Minecraft) ===
 // ------------------------------------------
 client.on("messageCreate", async (msg) => {
+    // Nota: El AntiSpam se maneja en /events/messageCreate.js
     if (msg.author.bot || !msg.guild) return;
 
     const args = msg.content.trim().split(/ +/g);
@@ -85,7 +87,7 @@ client.on("messageCreate", async (msg) => {
         msg.reply(`🏓 Pong! Latencia: ${client.ws.ping}ms`);
     }
 
-    // !help (Actualizado para reflejar comandos /)
+    // !help (Actualizado)
     if (command === "!help") {
         const embed = new EmbedBuilder()
             .setTitle("📜 Comandos de CandyBot")
@@ -105,7 +107,6 @@ client.on("messageCreate", async (msg) => {
 
     if (command === "!players") {
         try {
-            // Se usa la API de mcsrvstat.us
             const res = await fetch("https://api.mcsrvstat.us/2/play.candycraft.net");
             const data = await res.json();
             
@@ -138,10 +139,7 @@ player.events.on("playerStart", (queue, track) => {
 // ------------------------------------------
 client.once("ready", () => {
     console.log(`✅ CANDYBOT conectado como ${client.user.tag}`);
-    // Opcional: Ejecutar deploy-commands.js automáticamente si es necesario
-    // console.log("Desplegando comandos de barra..."); 
-    // require('./deploy-commands'); 
+    // console.log("Si los comandos / no aparecen, ejecuta deploy-commands.js manualmente.");
 });
 
-// Nota: Cambié process.env.TOKEN a process.env.DISCORD_TOKEN o el nombre que uses
 client.login(process.env.TOKEN);
