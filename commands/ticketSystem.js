@@ -1,71 +1,120 @@
-import { SlashCommandBuilder, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import {
+    SlashCommandBuilder,
+    PermissionsBitField,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    EmbedBuilder,
+} from 'discord.js';
 
 export default {
-    // Define el comando principal /ticket y el subcomando setup
     data: new SlashCommandBuilder()
         .setName('ticket')
-        .setDescription('Comandos para la gestión del sistema de tickets.')
-        .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator) // Solo administradores
-        .addSubcommand(subcommand =>
-            subcommand
+        .setDescription('Sistema de tickets para CandyCraft Network.')
+        .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator)
+        .addSubcommand(sub =>
+            sub
                 .setName('setup')
-                .setDescription('Establece el panel de tickets en el canal actual.')
+                .setDescription('Configura el panel de tickets.')
                 .addChannelOption(option =>
-                    option.setName('canal')
-                        .setDescription('El canal donde se publicará el panel de tickets.')
-                        .setRequired(true))
+                    option
+                        .setName('canal')
+                        .setDescription('Canal donde se enviará el panel.')
+                        .setRequired(true)
+                )
         ),
 
     async execute(interaction) {
-        // Solo permitir el comando a administradores
-        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-            return interaction.reply({ content: 'No tienes permisos de administrador para usar este comando.', ephemeral: true });
-        }
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator))
+            return interaction.reply({
+                content: '❌ No tienes permisos para usar este comando.',
+                ephemeral: true,
+            });
 
         const subcommand = interaction.options.getSubcommand();
 
         if (subcommand === 'setup') {
-            const channel = interaction.options.getChannel('canal');
+            const canal = interaction.options.getChannel('canal');
+            if (!canal || canal.type !== 0)
+                return interaction.reply({
+                    content: 'Por favor selecciona un canal de texto válido.',
+                    ephemeral: true,
+                });
 
-            if (!channel || channel.type !== 0) { // 0 es el tipo TEXT
-                return interaction.reply({ content: 'Por favor, selecciona un canal de texto válido.', ephemeral: true });
-            }
-
-            // --- Creación del Panel de Tickets ---
+            // 📋 Embed principal
             const embed = new EmbedBuilder()
-                .setTitle('🎫 Sistema de Tickets - CandyCraft Network')
-                .setColor('#FF69B4') // Rosa Candy
-                .setDescription('¡Bienvenido/a al soporte de CandyCraft Network!\n\n**Para abrir un ticket:**\n1. Haz clic en el botón de abajo.\n2. Selecciona la categoría de tu solicitud (reporte, ayuda, compras).\n\nUn miembro del equipo de staff te atenderá pronto.')
-                .setTimestamp()
-                .setFooter({ text: 'CandyBot | Soporte 24/7' });
+                .setColor('#ffb347')
+                .setTitle('🎟️ **CandyCraft Tickets**')
+                .setThumbnail('https://i.imgur.com/6M4h8Jm.png') // Puedes poner tu logo
+                .setDescription(
+                    `> Es importante que hagas un **uso correcto** tanto de los tickets como de las categorías disponibles.\n\n` +
+                    `Si el staff no responde en un plazo de **12–24 horas**, puede volver a abrir un ticket si el anterior fue cerrado.\n\n` +
+                    `**Categorías disponibles:**\n\n` +
+                    `🟢 **Soporte General** — Te ayudamos con cualquier duda o problema.\n` +
+                    `🧑‍💼 **Reporte Usuario** — Reporta conductas indebidas de otros jugadores.\n` +
+                    `🐞 **Reporte Bug** — Informa errores o fallos dentro del servidor.\n` +
+                    `⚖️ **Apelaciones** — Apela tu baneo si crees que fue un error.\n` +
+                    `🛍️ **Soporte Tienda** — Problemas con compras o pagos.\n` +
+                    `🚨 **Reporte Staff** — Denuncia conductas sospechosas de un miembro del staff.\n\n` +
+                    `🕒 *El tiempo promedio de respuesta es de 12–24 horas.*`
+                )
+                .setFooter({ text: 'CandyCraft Network | Sistema de soporte 24/7' })
+                .setTimestamp();
 
-            const row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('open_ticket') // ID único para el evento interactionCreate
-                        .setLabel('Abrir Ticket')
-                        .setStyle(ButtonStyle.Success) // Verde
-                        .setEmoji('📩'),
-                );
+            // 🎛️ Botones de categorías
+            const fila1 = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('ticket_soporte')
+                    .setLabel('Soporte General')
+                    .setEmoji('🟢')
+                    .setStyle(ButtonStyle.Primary),
 
-            // Envía el mensaje y el botón al canal seleccionado
+                new ButtonBuilder()
+                    .setCustomId('ticket_reporte')
+                    .setLabel('Reporte Usuario')
+                    .setEmoji('🧑‍💼')
+                    .setStyle(ButtonStyle.Danger),
+
+                new ButtonBuilder()
+                    .setCustomId('ticket_bug')
+                    .setLabel('Reporte Bug')
+                    .setEmoji('🐞')
+                    .setStyle(ButtonStyle.Secondary)
+            );
+
+            const fila2 = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId('ticket_apelacion')
+                    .setLabel('Apelaciones')
+                    .setEmoji('⚖️')
+                    .setStyle(ButtonStyle.Success),
+
+                new ButtonBuilder()
+                    .setCustomId('ticket_tienda')
+                    .setLabel('Soporte Tienda')
+                    .setEmoji('🛍️')
+                    .setStyle(ButtonStyle.Primary),
+
+                new ButtonBuilder()
+                    .setCustomId('ticket_staff')
+                    .setLabel('Reporte Staff')
+                    .setEmoji('🚨')
+                    .setStyle(ButtonStyle.Danger)
+            );
+
             try {
-                await channel.send({
-                    embeds: [embed],
-                    components: [row]
-                });
-
+                await canal.send({ embeds: [embed], components: [fila1, fila2] });
                 await interaction.reply({
-                    content: `Panel de tickets configurado exitosamente en ${channel}.`,
-                    ephemeral: true
+                    content: `✅ Panel de tickets enviado correctamente a ${canal}.`,
+                    ephemeral: true,
                 });
-            } catch (error) {
-                console.error('Error al enviar el panel de tickets:', error);
+            } catch (err) {
+                console.error('Error al enviar el panel:', err);
                 await interaction.reply({
-                    content: 'Error al enviar el mensaje. Asegúrate de que el bot tiene permisos de "Enviar mensajes" en ese canal.',
-                    ephemeral: true
+                    content: '❌ Error al enviar el panel. Verifica los permisos del bot.',
+                    ephemeral: true,
                 });
             }
         }
-    }
+    },
 };
