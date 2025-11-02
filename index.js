@@ -141,9 +141,34 @@ async function startBot() {
     client.once("ready", () => {
         console.log(`✅ CANDYBOT conectado como ${client.user.tag}`);
     });
+// === Slash Commands Handler ===
+client.on('interactionCreate', async (interaction) => {
+    // Ignorar todo lo que no sea un comando tipo slash (/)
+    if (!interaction.isChatInputCommand()) return;
+
+    const command = client.commands.get(interaction.commandName);
+
+    if (!command) {
+        console.log(`[❌] Comando ${interaction.commandName} no encontrado.`);
+        return interaction.reply({ content: 'Comando no válido o eliminado.', ephemeral: true });
+    }
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.error(`❌ Error al ejecutar /${interaction.commandName}:`, error);
+        // Manejo de error elegante
+        if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content: '⚠️ Ocurrió un error al ejecutar este comando.' });
+        } else {
+            await interaction.reply({ content: '⚠️ Ocurrió un error al ejecutar este comando.', ephemeral: true });
+        }
+    }
+});
 
     client.login(process.env.TOKEN);
 }
 
 // Iniciar el bot
 startBot();
+
