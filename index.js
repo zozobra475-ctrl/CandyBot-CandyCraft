@@ -133,7 +133,7 @@ async function startBot() {
     player.events.on("playerStart", (queue, track) => {
         queue.metadata.channel.send(`🎵 Reproduciendo: **${track.title}**`);
     });
-
+    await autoDeployCommands(client);
 
     // ------------------------------------------
     // === 3. LOGIN ===
@@ -165,10 +165,33 @@ client.on('interactionCreate', async (interaction) => {
         }
     }
 });
+import { REST, Routes } from "discord.js";
 
+async function autoDeployCommands(client) {
+    const TOKEN = process.env.TOKEN;
+    const CLIENT_ID = process.env.CLIENT_ID;
+    const GUILD_ID = "1400075086635208735"; // tu ID de servidor
+
+    const rest = new REST({ version: "10" }).setToken(TOKEN);
+
+    try {
+        console.log("🧹 Eliminando comandos antiguos del servidor...");
+        await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: [] });
+        console.log("✅ Comandos anteriores eliminados.");
+
+        const commandsJSON = client.commands.map(cmd => cmd.data.toJSON());
+        console.log(`🚀 Registrando ${commandsJSON.length} nuevos comandos...`);
+
+        await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commandsJSON });
+        console.log("✅ Nuevos comandos registrados correctamente.");
+    } catch (error) {
+        console.error("❌ Error al desplegar comandos automáticamente:", error);
+    }
+}
     client.login(process.env.TOKEN);
 }
 
 // Iniciar el bot
 startBot();
+
 
