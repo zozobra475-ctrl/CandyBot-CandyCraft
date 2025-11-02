@@ -24,7 +24,7 @@ export default {
             .setRequired(true)
         )
     ),
-
+  console.log("✅ Comando /ticket ejecutado por:", interaction.user.tag);
   async execute(interaction) {
     try {
       // Defer Reply: evita el error "la aplicación no ha respondido"
