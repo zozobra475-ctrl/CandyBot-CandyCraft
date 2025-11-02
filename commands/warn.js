@@ -1,63 +1,60 @@
-// utils/moderation.js (Versión ESM corregida)
-import fs from 'fs'; // CAMBIO 1
-const logFile = './moderation_logs.json';
+// /commands/warn.js (Ajustado a la exportación con nombre 'addSanction')
 
-// Función para leer los registros actuales
-function loadLogs() {
-    if (!fs.existsSync(logFile)) {
-        fs.writeFileSync(logFile, JSON.stringify({}));
-        return {};
-    }
-    try {
-        const data = fs.readFileSync(logFile, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error('Error al cargar logs de moderación:', error);
-        return {};
-    }
-}
+import { SlashCommandBuilder, PermissionsBitField, EmbedBuilder } from 'discord.js';
+import { addSanction } from '../utils/moderation.js'; // CAMBIO CLAVE: Importa 'addSanction'
 
-// Función para guardar los logs
-function saveLogs(logs) {
-    try {
-        fs.writeFileSync(logFile, JSON.stringify(logs, null, 2), 'utf8');
-    } catch (error) {
-        console.error('Error al guardar logs de moderación:', error);
-    }
-}
+export default {
+    data: new SlashCommandBuilder()
+        .setName('warn')
+        .setDescription('Aplica una advertencia (warn) a un usuario del servidor.')
+        .addUserOption(option =>
+            option.setName('target')
+                .setDescription('El usuario que recibirá la advertencia.')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('reason')
+                .setDescription('La razón de la advertencia.')
+                .setRequired(true))
+        .setDefaultMemberPermissions(PermissionsBitField.Flags.KickMembers), // Solo staff puede usarlo
 
-// Función principal para añadir una sanción
-function addSanction(userId, type, moderatorId, reason, duration = null) {
-    const logs = loadLogs();
-    
-    // Inicializar el usuario si no existe
-    if (!logs[userId]) {
-        logs[userId] = {
-            warnings: [],
-            mutes: [],
-            bans: [],
-        };
-    }
+    async execute(interaction) {
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.KickMembers)) {
+            return interaction.reply({ content: 'No tienes permiso para usar este comando.', ephemeral: true });
+        }
 
-    const sanctionEntry = {
-        type: type, // 'warn', 'mute', 'ban'
-        moderatorId: moderatorId,
-        reason: reason,
-        timestamp: new Date().toISOString(),
-        duration: duration // solo para mute/ban
-    };
+        const target = interaction.options.getUser('target');
+        const reason = interaction.options.getString('reason');
+        const moderatorId = interaction.user.id;
+        const guildId = interaction.guildId; // Necesitas el guildId para la función addSanction, aunque tu versión de addSanction solo usa userId. Lo mantendremos simple por ahora.
 
-    // Añadir al array correspondiente
-    if (logs[userId][type + 's']) {
-        logs[userId][type + 's'].push(sanctionEntry);
-    }
+        try {
+            // Usa la función 'addSanction' y especifica el tipo: 'warn'
+            const logs = addSanction(target.id, 'warn', moderatorId, reason); 
+            
+            // Comprobación simple: si devuelve logs, fue un éxito.
+            if (logs) {
+                const embed = new EmbedBuilder()
+                    .setTitle('🚨 Advertencia Aplicada')
+                    .setColor('#FF9900') // Naranja
+                    .setDescription(`El usuario **${target.tag}** ha sido advertido.`)
+                    .addFields(
+                        { name: 'Razón', value: reason },
+                        { name: 'Moderador', value: interaction.user.tag },
+                        { name: 'Total de advertencias', value: `${logs.warnings.length}` } // Muestra el número de warnings
+                    )
+                    .setTimestamp();
 
-    saveLogs(logs);
-    return logs[userId]; // Devolver el historial actualizado
-}
+                await interaction.reply({ embeds: [embed] });
+                
+                // Intenta notificar al usuario por mensaje directo
+                await target.send(`Has recibido una advertencia en el servidor **${interaction.guild.name}** por la razón: ${reason}`).catch(() => console.log("No se pudo enviar DM."));
 
-// CAMBIO 2: Exportar funciones
-export {
-    loadLogs,
-    addSanction
+            } else {
+                await interaction.reply({ content: 'Hubo un error al registrar la advertencia.', ephemeral: true });
+            }
+        } catch (error) {
+            console.error('Error al ejecutar el comando warn:', error);
+            await interaction.reply({ content: 'Ocurrió un error inesperado al procesar la advertencia.', ephemeral: true });
+        }
+    },
 };
