@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // Variables necesarias
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID; // ¡Asegúrate de que CLIENT_ID está en tu .env!
-const GUILD_ID = 'TU_ID_DE_SERVIDOR'; // Remplaza con el ID de tu servidor de pruebas o principal
+const GUILD_ID = '1400075086635208735'; // Remplaza con el ID de tu servidor de pruebas o principal
 
 const commands = [];
 // Carga los comandos desde la carpeta /commands
@@ -62,3 +62,4 @@ setTimeout(async () => {
         console.error(error);
     }
 }, 5000); // Esperar 5 segundos para asegurar que todos los imports dinámicos terminaron
+
